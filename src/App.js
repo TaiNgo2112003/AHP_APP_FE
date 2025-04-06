@@ -1,14 +1,21 @@
-import React from 'react';
-import './App.css';
-import Header from './components/Header';
-import TestDb from './components/TestDb';
+// App.js
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import Tools from "./pages/Tools";
+import Chatbot from "./pages/Chatbot";
 
 function App() {
   return (
-    <div className="App">
-      <Header />
-      <TestDb />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="tools" element={<Tools />} />
+          <Route path="chatbot" element={<Chatbot />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 

@@ -1,0 +1,165 @@
+/* Sidebar.css */
+.sidebar {
+  position: fixed;
+  top: 60px; /* Chiều cao của header */
+  left: 0;
+  height: calc(100vh - 60px - 60px); /* Trừ chiều cao header và footer */
+  width: 250px;
+  background-color: #2c3e50;
+  color: white;
+  transition: all 0.3s ease;
+  z-index: 999; /* Đảm bảo sidebar nằm dưới header nhưng trên content */
+  overflow-y: auto; /* Cho phép scroll nếu nội dung dài */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.closed {
+  width: 50px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: #34495e;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.toggle-btn:hover {
+  background: #2980b9;
+}
+
+.sidebar-nav {
+  padding: 20px 0;
+  margin-top: 20px;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  padding: 10px 20px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.sidebar-nav li:hover {
+  background-color: #34495e;
+}
+
+.sidebar-nav a {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-nav a:hover {
+  color: #5bcaa7;
+}
+
+.sidebar.closed .sidebar-nav li {
+  padding: 10px 15px;
+  text-align: center;
+}
+
+.sidebar.closed .sidebar-nav a span {
+  display: none;
+}
+
+.sidebar.closed .sidebar-nav a {
+  justify-content: center;
+}
+
+/* Icon styles */
+.sidebar-nav a::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.sidebar-nav li:nth-child(1) a::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>');
+}
+
+.sidebar-nav li:nth-child(2) a::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>');
+}
+
+.sidebar-nav li:nth-child(3) a::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>');
+}
+/* Thêm vào cuối file Sidebar.css */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s;
+  z-index: 1001;
+}
+
+.resize-handle:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.resize-handle.active {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar.closed .resize-handle {
+  display: none;
+}
+/* Thêm vào file Sidebar.css */
+
+/* Nút bên ngoài */
+.external-toggle-btn {
+  position: fixed;
+  left: 250px; /* Mặc định bằng width sidebar */
+  top: 300px;
+  background: #34495e;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 0 50% 50% 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.external-toggle-btn:hover {
+  background: #2980b9;
+  left: calc(250px + 5px); /* Di chuyển thêm 5px khi hover */
+}
+
+/* Sidebar khi đóng */
+.sidebar.closed {
+  width: 0;
+  overflow: hidden;
+}
