@@ -1,11 +1,11 @@
-// pages/Tools.jsx
 import React from "react";
+import MapComponent from "../components/MapComponent";
 
 const Tools = () => {
   return (
     <div>
-      <h2 className="text-2xl">Tools Page</h2>
-      <p>Here you can find various tools related to location decision making.</p>
+      <h2>Trang Công Cụ - Bản Đồ</h2>
+      <MapComponent />
     </div>
   );
 };

@@ -90,7 +90,7 @@ const Sidebar = () => {
             </Link>
           </li>
           <li>
-            <Link to="/chat-ai">
+            <Link to="/chatbot">
               <span>Chat AI</span>
             </Link>
           </li>

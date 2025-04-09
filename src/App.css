@@ -40,3 +40,24 @@ body {
 .bg-gray-200 {
   background-color: #edf2f7;
 }
+
+.map-container {
+  height: 500px;
+  width: 100%;
+}
+
+.info-panel {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+.ahp-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ahp-table th, .ahp-table td {
+  border: 1px solid black;
+  padding: 8px;
+}
