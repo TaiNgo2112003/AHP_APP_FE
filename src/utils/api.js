@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-// Config API
-const API_BASE_URL = 'http://localhost:5000/api'; // Update nếu backend thay đổi
+// Config API 
+const isLocalhost = window.location.hostname === 'localhost';
+const API_BASE_URL = isLocalhost
+  ? 'http://localhost:5000/api'
+  : 'https://ahp-app.onrender.com/api';
+ // Update nếu backend thay đổi
 const DEFAULT_ERROR_MESSAGE = 'An error occurred. Please try again.';
 
 // Tạo instance axios với config mặc định
