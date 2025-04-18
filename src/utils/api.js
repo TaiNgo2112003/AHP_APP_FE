@@ -175,9 +175,19 @@ export const ahpApi = {
     }
   }
 };
-
+export const chatboxApi = {
+  sendMessage: async (message) => {
+    try {
+      const response = await axiosInstance.post('/chatbox', { message });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+};
 // Export tất cả các services
 export default {
+  chatbox: chatboxApi,
   criteria: criteriaApi,
   locations: locationsApi,
   pairwise: pairwiseApi,

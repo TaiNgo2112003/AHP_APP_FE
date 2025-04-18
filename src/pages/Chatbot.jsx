@@ -1,205 +1,252 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Input, Button, Card, Spin, message, Collapse, Space } from 'antd';
-import { SendOutlined, DeleteOutlined, RobotOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import { Button, Input, Card, message, Collapse, Space, Typography, Divider, Spin } from 'antd';
+import { SendOutlined, DeleteOutlined, RobotOutlined, BulbOutlined } from '@ant-design/icons';
+import api from '../utils/api';
 
 const { TextArea } = Input;
 const { Panel } = Collapse;
+const { Title, Text } = Typography;
 
 const AIChatBox = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [apiKey] = useState("AIzaSyAy8qnAJCaNHBx7b2NKXg6R9E8Glr7rlvQ");
+  const [criteriaLoading, setCriteriaLoading] = useState(false);
+  const [suggestedCriteria, setSuggestedCriteria] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // Load messages from sessionStorage on component mount
-  useEffect(() => {
-    const savedMessages = sessionStorage.getItem('ahp-chat-messages');
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
-  }, []);
-
-  // Save messages to sessionStorage whenever they change
-  useEffect(() => {
-    sessionStorage.setItem('ahp-chat-messages', JSON.stringify(messages));
-  }, [messages]);
-
-  // Auto scroll to bottom
+  // Tự động cuộn xuống tin nhắn mới nhất
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
-
-    const userMessage = {
-      text: input,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    
     setLoading(true);
-
     try {
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
-        {
-          contents: [{
-            parts: [{
-              text: `Bạn là chuyên gia phân tích AHP (Analytic Hierarchy Process). 
-              Hãy trả lời câu hỏi về quyết định lựa chọn địa điểm hoặc phân tích đa tiêu chí.
-              Câu hỏi: ${input}`
-            }]
-          }]
-        }
-      );
-
-      const aiMessage = {
-        text: response.data.candidates[0].content.parts[0].text,
+      // Thêm tin nhắn người dùng
+      const userMsg = { 
+        text: input, 
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setMessages(prev => [...prev, userMsg]);
+      
+      // Gửi API và nhận phản hồi
+      const response = await api.chatbox.sendMessage(input);
+      const aiMsg = { 
+        text: response.response, 
         sender: 'ai',
         timestamp: new Date().toLocaleTimeString()
       };
-
-      setMessages(prev => [...prev, aiMessage]);
+      
+      setMessages(prev => [...prev, aiMsg]);
+      setInput('');
     } catch (error) {
-      message.error('Lỗi khi kết nối với AI: ' + error.message);
+      message.error('Gửi tin nhắn thất bại: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadCriteriaSuggestions = async () => {
+    setCriteriaLoading(true);
+    try {
+      const response = await api.ahp.getCriteriaSuggestions();
+      setSuggestedCriteria(response.criteria);
+      message.success('Đã tải gợi ý tiêu chí thành công');
+    } catch (error) {
+      message.error('Không thể tải gợi ý tiêu chí: ' + error.message);
+    } finally {
+      setCriteriaLoading(false);
+    }
+  };
+
   const clearChat = () => {
     setMessages([]);
-    sessionStorage.removeItem('ahp-chat-messages');
-    message.success('Đã xóa lịch sử chat');
+    message.success('Đã xóa lịch sử trò chuyện');
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <Card
-        title={
-          <Space>
-            <RobotOutlined />
-            <span>AI Hỗ Trợ Phân Tích AHP</span>
-          </Space>
-        }
-        extra={
-          <Button 
-            icon={<DeleteOutlined />} 
-            onClick={clearChat}
-            danger
-          >
-            Xóa Cache
-          </Button>
-        }
-      >
-        <div style={{ 
-          height: '500px', 
+    <Card
+      title={
+        <Space>
+          <RobotOutlined style={{ color: '#1890ff' }} />
+          <Title level={4} style={{ margin: 0 }}>Trợ lý Phân tích AHP</Title>
+        </Space>
+      }
+      extra={
+        <Button 
+          icon={<DeleteOutlined />} 
+          onClick={clearChat}
+          danger
+          size="small"
+        >
+          Xóa chat
+        </Button>
+      }
+      style={{ 
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+      }}
+    >
+      {/* Khu vực hiển thị tin nhắn */}
+      <div 
+        style={{ 
+          height: '400px', 
           overflowY: 'auto', 
-          marginBottom: '20px',
-          border: '1px solid #f0f0f0',
-          padding: '10px',
-          borderRadius: '4px'
-        }}>
-          {messages.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-              <p>Chào bạn! Tôi là AI hỗ trợ phân tích AHP.</p>
-              <p>Bạn có thể hỏi tôi về:</p>
-              <ul style={{ textAlign: 'left', display: 'inline-block' }}>
-                <li>Cách xác định tiêu chí đánh giá địa điểm</li>
-                <li>Cách thiết lập ma trận so sánh cặp</li>
-                <li>Phân tích trọng số các yếu tố</li>
-                <li>Đánh giá phương án lựa chọn</li>
-              </ul>
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div 
-                key={index} 
-                style={{ 
-                  textAlign: msg.sender === 'user' ? 'right' : 'left',
-                  margin: '10px 0'
+          padding: '16px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          marginBottom: '16px'
+        }}
+      >
+        {messages.length === 0 ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '40px 0',
+            color: 'rgba(0,0,0,0.45)'
+          }}>
+            <BulbOutlined style={{ fontSize: '24px', marginBottom: '8px' }} />
+            <p>Hãy bắt đầu bằng cách đặt câu hỏi về phân tích AHP</p>
+          </div>
+        ) : (
+          messages.map((msg, i) => (
+            <div 
+              key={i} 
+              style={{ 
+                marginBottom: '12px',
+                textAlign: msg.sender === 'user' ? 'right' : 'left'
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  maxWidth: '80%',
+                  padding: '8px 16px',
+                  borderRadius: msg.sender === 'user' 
+                    ? '16px 16px 0 16px' 
+                    : '16px 16px 16px 0',
+                  backgroundColor: msg.sender === 'user' 
+                    ? '#1890ff' 
+                    : '#f0f0f0',
+                  color: msg.sender === 'user' ? '#fff' : '#000',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                 }}
               >
-                <div
-                  style={{
-                    display: 'inline-block',
-                    padding: '8px 12px',
-                    borderRadius: msg.sender === 'user' 
-                      ? '12px 12px 0 12px' 
-                      : '12px 12px 12px 0',
-                    background: msg.sender === 'user' 
-                      ? '#1890ff' 
-                      : '#f0f0f0',
-                    color: msg.sender === 'user' ? '#fff' : '#000',
-                    maxWidth: '80%'
-                  }}
-                >
-                  {msg.text}
-                  <div style={{ fontSize: '0.8em', opacity: 0.7 }}>
-                    {msg.timestamp}
-                  </div>
+                <Text>{msg.text}</Text>
+                <div style={{ 
+                  fontSize: '0.75em',
+                  opacity: 0.7,
+                  marginTop: '4px',
+                  textAlign: 'right'
+                }}>
+                  {msg.timestamp}
                 </div>
               </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <TextArea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Nhập câu hỏi về phân tích AHP..."
-            autoSize={{ minRows: 2, maxRows: 4 }}
-            onPressEnter={(e) => {
-              if (!e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-          />
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={handleSendMessage}
-            loading={loading}
-            disabled={!input.trim()}
-          >
-            Gửi
-          </Button>
-        </div>
-      </Card>
+      {/* Khu vực nhập tin nhắn */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <TextArea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Nhập câu hỏi về phân tích AHP (tiêu chí, ma trận so sánh, trọng số...)"
+          rows={3}
+          autoSize={{ minRows: 2, maxRows: 5 }}
+          onPressEnter={(e) => {
+            if (!e.shiftKey && !loading) {
+              e.preventDefault();
+              handleSendMessage();
+            }
+          }}
+        />
+        <Button
+          type="primary"
+          icon={<SendOutlined />}
+          onClick={handleSendMessage}
+          loading={loading}
+          disabled={!input.trim()}
+          style={{ height: 'auto' }}
+        >
+          Gửi
+        </Button>
+      </div>
 
-      <Collapse style={{ marginTop: '20px' }}>
-        <Panel header="Gợi ý câu hỏi mẫu" key="1">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <Button 
-              type="text" 
-              onClick={() => setInput("Các tiêu chí quan trọng khi chọn địa điểm xây dựng trung tâm thương mại là gì?")}
-            >
-              Tiêu chí chọn địa điểm TTTM
-            </Button>
-            <Button 
-              type="text" 
-              onClick={() => setInput("Cách thiết lập ma trận so sánh cặp trong AHP?")}
-            >
-              Cách lập ma trận AHP
-            </Button>
-            <Button 
-              type="text" 
-              onClick={() => setInput("Làm thế nào để tính toán trọng số trong AHP?")}
-            >
-              Tính trọng số AHP
-            </Button>
-          </div>
+      {/* Khu vực gợi ý tiêu chí */}
+      <Collapse ghost>
+        <Panel 
+          header={
+            <Space>
+              <BulbOutlined />
+              <Text strong>Gợi ý tiêu chí AHP</Text>
+            </Space>
+          } 
+          key="1"
+        >
+          <Spin spinning={criteriaLoading}>
+            {suggestedCriteria.length > 0 ? (
+              <div style={{ 
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginTop: '8px'
+              }}>
+                {suggestedCriteria.map((criterion, index) => (
+                  <Button 
+                    key={index}
+                    type="dashed"
+                    size="small"
+                    onClick={() => setInput(`Giải thích về tiêu chí "${criterion}" trong AHP`)}
+                  >
+                    {criterion}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <Button 
+                type="primary" 
+                ghost 
+                onClick={loadCriteriaSuggestions}
+                icon={<BulbOutlined />}
+              >
+                Lấy gợi ý tiêu chí
+              </Button>
+            )}
+          </Spin>
         </Panel>
       </Collapse>
-    </div>
+
+      {/* Gợi ý câu hỏi mẫu */}
+      <Divider orientation="left" plain>Mẫu câu hỏi</Divider>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <Button 
+          size="small"
+          onClick={() => setInput("Cách thiết lập ma trận so sánh cặp trong AHP?")}
+        >
+          Ma trận so sánh
+        </Button>
+        <Button 
+          size="small"
+          onClick={() => setInput("Làm thế nào để tính toán trọng số trong AHP?")}
+        >
+          Tính trọng số
+        </Button>
+        <Button 
+          size="small"
+          onClick={() => setInput("Các tiêu chí quan trọng khi đánh giá địa điểm?")}
+        >
+          Tiêu chí đánh giá
+        </Button>
+      </div>
+    </Card>
   );
 };
 
