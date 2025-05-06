@@ -4,7 +4,7 @@ import axios from 'axios';
 const isLocalhost = window.location.hostname === 'localhost';
 const API_BASE_URL = isLocalhost
   ? 'http://localhost:5000/api'
-  : 'https://ahp-app.onrender.com/api';
+: 'https://ahp-app.onrender.com/api';
  // Update nếu backend thay đổi
 const DEFAULT_ERROR_MESSAGE = 'An error occurred. Please try again.';
 
@@ -73,9 +73,16 @@ export const criteriaApi = {
     } catch (error) {
       return handleApiError(error);
     }
+  },
+  delete: async (criterionId) => {
+    try{
+      const response = await axiosInstance.delete('/criteria', { data: { _id: criterionId } });
+      return response.data;
+    }catch (error) {
+      return handleApiError(error);
+    }
   }
 };
-
 /**
  * API Service cho Locations
  */
@@ -96,7 +103,16 @@ export const locationsApi = {
     } catch (error) {
       return handleApiError(error);
     }
+  },
+  delete: async (locationId) => {
+    try{
+      const response = await axiosInstance.delete('/locations', { data: { _id: locationId } });
+      return response.data;
+    }catch (error) {
+      return handleApiError(error);
+    }
   }
+
 };
 
 /**

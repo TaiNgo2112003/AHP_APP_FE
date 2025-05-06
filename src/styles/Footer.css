@@ -5,6 +5,7 @@
   padding: 20px;
   text-align: center;
   width: 100%;
+  z-index: 1101;
 }
 
 .footer p {

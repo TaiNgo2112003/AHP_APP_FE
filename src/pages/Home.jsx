@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  PieChart, Pie, LineChart, Line
+} from 'recharts';
+import {
   Container,
   Typography,
   Box,
@@ -34,7 +38,17 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import api from '../utils/api';
-
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table as TableWord,
+  TableRow as TableRowWord,
+  TableCell as TableCellWord,
+  WidthType,
+} from 'docx';
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
   marginBottom: theme.spacing(3),
@@ -77,6 +91,145 @@ const Home = () => {
       setLoading(false);
     }
   };
+  //Export with excel-document detail result
+  const handleExportToExcel = () => {
+    if (!ahpDetails) return;
+
+    const consistencyData = [
+      { Metric: 'Consistency Index (CI)', Value: ahpDetails.consistency_index?.toFixed(4) },
+      { Metric: 'Consistency Ratio (CR)', Value: ahpDetails.consistency_ratio?.toFixed(4) },
+      { Metric: 'Lambda Max', Value: ahpDetails.lambda_max?.toFixed(4) },
+    ];
+
+    const matrixToSheet = (matrix, title) => {
+      const headers = ['Criteria', ...criteria.map(c => c.name)];
+      const rows = matrix.map((row, i) => {
+        const rowLabel = criteria[i]?.name || `Criterion ${i + 1}`;
+        return [rowLabel, ...row.map(v => v.toFixed(4))];
+      });
+      return [[title], [], headers, ...rows, []];
+    };
+
+    const weightsSheet = [
+      ['Final Weights'],
+      [],
+      ['Criteria', 'Weight'],
+      ...ahpDetails.weights.map((w, i) => [criteria[i]?.name || `Criterion ${i + 1}`, w.toFixed(4)]),
+      []
+    ];
+
+    const sheetData = [
+      ['Consistency Analysis'],
+      [],
+      ['Metric', 'Value'],
+      ...consistencyData.map(d => [d.Metric, d.Value]),
+      [],
+      ...matrixToSheet(ahpDetails.pairwise_matrix, 'Pairwise Comparison Matrix'),
+      ...matrixToSheet(ahpDetails.normalized_matrix, 'Normalized Matrix'),
+      ...weightsSheet
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'AHP Details');
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(data, 'AHP_Analysis.xlsx');
+  };
+  //Export with word-document detail result
+  const handleExportToWord = async () => {
+    if (!ahpDetails || !criteria) return;
+
+    const createTable = (title, matrix) => {
+      const headerCells = [
+        new TableCellWord({
+          children: [new Paragraph('Criteria')],
+        }),
+        ...criteria.map(c =>
+          new TableCellWord({ children: [new Paragraph(c.name)] })
+        ),
+      ];
+
+      const rows = matrix.map((row, i) => {
+        const cells = [
+          new TableCellWord({
+            children: [new Paragraph(criteria[i]?.name || `Criterion ${i + 1}`)],
+          }),
+          ...row.map(value =>
+            new TableCellWord({
+              children: [new Paragraph(value.toFixed(4))],
+            })
+          ),
+        ];
+        return new TableRowWord({ children: cells });
+      });
+
+      return [
+        new Paragraph({ text: title, bold: true }),
+        new TableWord({
+          rows: [new TableRowWord({ children: headerCells }), ...rows],
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        }),
+        new Paragraph(" "),
+      ];
+    };
+
+    const doc = new Document({
+      creator: "AHP App",
+      title: "AHP Analysis",
+      description: "Auto-generated AHP Analysis Report",
+      sections: [
+        {
+          children: [
+            new Paragraph({ text: 'AHP Analysis Details', heading: 'Heading1' }),
+            new Paragraph(" "),
+            new Paragraph({ text: 'Consistency Analysis', bold: true }),
+            new Paragraph(
+              `Consistency Index (CI): ${ahpDetails.consistency_index?.toFixed(4) || 'N/A'}`
+            ),
+            new Paragraph(
+              `Consistency Ratio (CR): ${ahpDetails.consistency_ratio?.toFixed(4)} (${ahpDetails.is_consistent ? 'Consistent' : 'Inconsistent'})`
+            ),
+            new Paragraph(
+              `Lambda Max: ${ahpDetails.lambda_max?.toFixed(4) || 'N/A'}`
+            ),
+            new Paragraph(" "),
+            ...createTable('Pairwise Comparison Matrix', ahpDetails.pairwise_matrix),
+            ...createTable('Normalized Matrix', ahpDetails.normalized_matrix),
+            new Paragraph({ text: 'Final Weights', bold: true }),
+            new TableWord({
+              rows: [
+                new TableRowWord({
+                  children: [
+                    new TableCellWord({ children: [new Paragraph('Criteria')] }),
+                    new TableCellWord({ children: [new Paragraph('Weight')] }),
+                  ],
+                }),
+                ...ahpDetails.weights.map((w, i) =>
+                  new TableRowWord({
+                    children: [
+                      new TableCellWord({
+                        children: [new Paragraph(criteria[i]?.name || `Criterion ${i + 1}`)],
+                      }),
+                      new TableCellWord({
+                        children: [new Paragraph(w.toFixed(4))],
+                      }),
+                    ],
+                  })
+                ),
+              ],
+              width: { size: 100, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "AHP_Analysis.docx");
+  };
+
   // Form states
   const [newCriterion, setNewCriterion] = useState({ name: '', description: '' });
   const [newLocation, setNewLocation] = useState({
@@ -187,7 +340,32 @@ const Home = () => {
       setLoading(false);
     }
   };
-
+  const handleDeleteCriterion = async (id) => {
+    console.log('Deleting criterion with id:', id);
+    if (window.confirm('Are you sure you want to delete this criterion?')) {
+      try {
+        await api.criteria.delete(id);
+        setCriteria((prev) => prev.filter((c) => c._id !== id));
+        showSnackbar('Criterion deleted successfully', 'success');
+      } catch (error) {
+        console.error('Failed to delete criterion:', error);
+        showSnackbar('Failed to delete criterion', 'error');
+      }
+    }
+  }
+  const handleDeleteLocation = async (id) => {
+    console.log('Deleting location with id:', id);
+    if (window.confirm('Are you sure you want to delete this location?')) {
+      try {
+        await api.locations.delete(id);
+        setLocations((prev) => prev.filter((l) => l._id !== id));
+        showSnackbar('Location deleted successfully', 'success');
+      } catch (error) {
+        console.error('Failed to delete location:', error);
+        showSnackbar('Failed to delete location', 'error');
+      }
+    }
+  }
   // Location handlers
   const handleAddLocation = async () => {
     if (!newLocation.name.trim()) {
@@ -328,6 +506,7 @@ const Home = () => {
                     <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -343,6 +522,14 @@ const Home = () => {
                           </Box>
                         </TableCell>
                         <TableCell>{criterion.description || 'No description'}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant='outlined'
+                            color='error'
+                            size='small'
+                            onClick={() => handleDeleteCriterion(criterion._id)}
+                          >DELETE</Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -402,7 +589,7 @@ const Home = () => {
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 {locations.map((location) => (
                   <Grid item xs={12} sm={6} md={4} key={location._id}>
-                    <Card sx={{ height: '100%' }}>
+                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
                           {location.name}
@@ -414,10 +601,21 @@ const Home = () => {
                           Scores: {Object.values(location.scores).filter(s => s > 0).length}/{criteria.length} criteria
                         </Typography>
                       </CardContent>
+                      <Box sx={{ p: 2, pt: 0, textAlign: 'right' }}>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDeleteLocation(location._id)}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
                     </Card>
                   </Grid>
                 ))}
               </Grid>
+
             ) : (
               <Box sx={{
                 p: 4,
@@ -645,6 +843,21 @@ const Home = () => {
               >
                 Refresh AHP Data
               </Button>
+              <Button
+                variant="outlined"
+                onClick={handleExportToExcel}
+                sx={{ ml: 2 }}
+              >
+                Download as Excel
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleExportToWord}
+                sx={{ ml: 2 }}
+              >
+                Download as Word
+              </Button>
+
             </Box>
 
             {ahpDetails ? (
@@ -652,6 +865,124 @@ const Home = () => {
                 <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
                   Consistency Analysis
                 </Typography>
+                {ahpDetails?.weights && (
+                  <Box sx={{ height: 400, mb: 4 }}>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      Criteria Weights Distribution
+                    </Typography>
+                    <BarChart
+                      width={800}
+                      height={350}
+                      data={criteria.map((c, i) => ({
+                        name: c.name,
+                        weight: ahpDetails.weights[i]
+                      }))}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 60,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="name"
+                        angle={-45}
+                        textAnchor="end"
+                        height={70}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        label={{
+                          value: 'Weight',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fontSize: 14
+                        }}
+                      />
+                      <Tooltip formatter={(value) => [value.toFixed(4), "Weight"]} />
+                      <Legend />
+                      <Bar
+                        dataKey="weight"
+                        fill="#8884d8"
+                        name="Criteria Weight"
+                        animationDuration={2000}
+                      >
+                        {criteria.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={`#${Math.floor(Math.random() * 16777215).toString(16)}`} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </Box>
+                )}
+
+                {/* Biểu đồ đường cho phân tích nhất quán */}
+                <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+                  Consistency Analysis Visualization
+                </Typography>
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 2, height: 300 }}>
+                      <Typography variant="body1" sx={{ mb: 2 }}>
+                        Consistency Metrics
+                      </Typography>
+                      <PieChart width={400} height={250}>
+                        <Pie
+                          data={[
+                            { name: 'Consistency Index', value: ahpDetails?.consistency_index || 0 },
+                            { name: 'Consistency Ratio', value: ahpDetails?.consistency_ratio || 0 },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(2)}%`}
+                        >
+                          <Cell fill="#0088FE" />
+                          <Cell fill="#00C49F" />
+                        </Pie>
+                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                        <Legend />
+                      </PieChart>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 2, height: 300 }}>
+                      <Typography variant="body1" sx={{ mb: 2 }}>
+                        Consistency Threshold Comparison
+                      </Typography>
+                      <LineChart
+                        width={400}
+                        height={250}
+                        data={[
+                          { name: 'Your CR', value: ahpDetails?.consistency_ratio || 0 },
+                          { name: 'Threshold (0.1)', value: 0.1 }
+                        ]}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis domain={[0, 0.15]} />
+                        <Tooltip formatter={(value) => value.toFixed(4)} />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#FF8042"
+                          activeDot={{ r: 8 }}
+                          name="Value"
+                        />
+                      </LineChart>
+                    </Paper>
+                  </Grid>
+                </Grid>
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                   <Grid item xs={12} md={4}>
                     <Paper sx={{ p: 2 }}>
@@ -931,3 +1262,5 @@ const Home = () => {
 };
 
 export default Home;
+
+// npm run start:local  

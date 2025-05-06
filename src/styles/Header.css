@@ -15,7 +15,7 @@
   box-sizing: border-box; /* Quan trọng: bao gồm padding trong width */
   width: 100vw; /* Sử dụng viewport width */
   max-width: 100%; /* Đảm bảo không vượt quá kích thước màn hình */
-  overflow: hidden; /* Ẩn phần nội dung bị tràn */
+  /* overflow: hidden;  */
 } 
 
 .header.dark {
@@ -139,6 +139,7 @@
 }
 
 .user-menu-container {
+  z-index: 1003;
   position: relative;
 }
 
@@ -161,6 +162,7 @@
 
 .user-menu-item {
   padding: 10px 15px;
+  z-index: 1002;
   width: 100%;
   text-align: left;
   border: none;
