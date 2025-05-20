@@ -205,8 +205,28 @@ export const chatboxApi = {
     }
   }
 };
+export const calculateExcelApi = {
+  calculateExcel: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file); // key 'file' phải khớp với backend
+
+      const response = await axiosInstance.post('/calculate', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+};
+
 // Export tất cả các services
 export default {
+  calculateExcel: calculateExcelApi,
   chatbox: chatboxApi,
   criteria: criteriaApi,
   locations: locationsApi,

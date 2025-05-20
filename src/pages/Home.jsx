@@ -528,7 +528,9 @@ const Home = () => {
                             color='error'
                             size='small'
                             onClick={() => handleDeleteCriterion(criterion._id)}
-                          >DELETE</Button>
+                          >
+                            DELETE
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -549,11 +551,20 @@ const Home = () => {
               </Box>
             )}
 
+            {/* Cảnh báo nếu chưa đủ 5 tiêu chí */}
+            {criteria.length < 5 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="body2" color="error">
+                  Please define at least 5 criteria before continuing.
+                </Typography>
+              </Box>
+            )}
+
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
               <Button
                 variant="contained"
                 onClick={handleNext}
-                disabled={criteria.length === 0}
+                disabled={criteria.length < 5}
                 sx={{ px: 4 }}
               >
                 Continue
@@ -562,6 +573,7 @@ const Home = () => {
           </CardContent>
         </StyledCard>
       )}
+
 
       {/* Step 2: Add Locations */}
       {activeStep === 1 && !loading && (

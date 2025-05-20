@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Tools from "./pages/Tools";
 import Chatbot from "./pages/Chatbot";
+import Calculator from  "./pages/Calculator";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route index element={<Home />} />
           <Route path="tools" element={<Tools />} />
           <Route path="chatbot" element={<Chatbot />} />
+          <Route path="calculator" element={<Calculator />} />
         </Route>
       </Routes>
     </Router>

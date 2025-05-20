@@ -94,6 +94,11 @@ const Sidebar = () => {
               <span>Chat AI</span>
             </Link>
           </li>
+          <li>
+            <Link to="/calculator">
+              <span>Calculator</span>
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
