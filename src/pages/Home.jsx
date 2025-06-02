@@ -875,12 +875,12 @@ const Home = () => {
             {ahpDetails ? (
               <>
                 <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-                  Consistency Analysis
+
                 </Typography>
                 {ahpDetails?.weights && (
                   <Box sx={{ height: 400, mb: 4 }}>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      Criteria Weights Distribution
+                    <Typography variant="subtitle1" sx={{ mt: 4, mb: 1, fontWeight: 'bold' }}>
+                      Biểu đồ trọng số tiêu chí
                     </Typography>
                     <BarChart
                       width={800}
@@ -922,6 +922,63 @@ const Home = () => {
                       >
                         {criteria.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={`#${Math.floor(Math.random() * 16777215).toString(16)}`} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </Box>
+                )}
+                {/* Biểu đồ trọng số phương án - sử dụng dữ liệu từ results */}
+                <Typography variant="subtitle1" sx={{ mt: 4, mb: 1, fontWeight: 'bold' }}>
+                  Biểu đồ trọng số phương án
+                </Typography>
+                {results.length > 0 && (
+                  <Box sx={{ height: 400 }}>
+                    <BarChart
+                      width={800}
+                      height={350}
+                      data={results.map((result, index) => ({
+                        name: result.location_name,
+                        score: result.total_score,
+                        rank: index + 1
+                      }))}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 60,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="name"
+                        angle={-45}
+                        textAnchor="end"
+                        height={70}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        label={{
+                          value: 'Total Score',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fontSize: 14
+                        }}
+                      />
+                      <Tooltip
+                        formatter={(value, name) => {
+                          if (name === 'rank') return [value, "Rank"];
+                          return [value.toFixed(2), "Total Score"];
+                        }}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="score"
+                        fill="#82ca9d"
+                        name="Total Score"
+                        animationDuration={2000}
+                      >
+                        {results.map((entry, index) => (
+                          <Cell key={`cell-alt-${index}`} fill={`#${Math.floor(Math.random() * 16777215).toString(16)}`} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -1032,9 +1089,9 @@ const Home = () => {
                     </Paper>
                   </Grid>
                 </Grid>
-
+                {/* Các bảng kết quả cuối cùng */}
                 <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-                  Pairwise Comparison Matrix
+                  Ma Trận So Sánh Cặp
                 </Typography>
                 {ahpDetails.pairwise_matrix && (
                   <TableContainer component={Paper} sx={{ mb: 3 }}>
@@ -1068,7 +1125,7 @@ const Home = () => {
                 )}
 
                 <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-                  Normalized Matrix
+                  Ma Trận Chuẩn Hóa
                 </Typography>
                 {ahpDetails.normalized_matrix && (
                   <TableContainer component={Paper} sx={{ mb: 3 }}>
@@ -1102,7 +1159,7 @@ const Home = () => {
                 )}
 
                 <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-                  Final Weights
+                  Trọng số tiêu chí
                 </Typography>
                 {ahpDetails.weights && (
                   <TableContainer component={Paper}>
@@ -1128,6 +1185,41 @@ const Home = () => {
                     </Table>
                   </TableContainer>
                 )}
+                <Typography variant="subtitle1" sx={{ mt: 6, mb: 2, fontWeight: 'bold' }}>
+                  Vector Nhất Quán
+                </Typography>
+                {ahpDetails.pairwise_matrix && ahpDetails.weights && (
+                  <TableContainer component={Paper} sx={{ mb: 5 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Tiêu chí</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>Trọng số (W)</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>A·W</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>A·W / W</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {ahpDetails.pairwise_matrix.map((row, i) => {
+                          const weight = ahpDetails.weights[i];
+                          // Tính A·W cho từng hàng (tức là dot product giữa hàng và vector trọng số)
+                          const aw = row.reduce((sum, val, j) => sum + val * ahpDetails.weights[j], 0);
+                          const ratio = aw / weight;
+                          return (
+                            <TableRow key={i}>
+                              <TableCell sx={{ fontWeight: 'bold' }}>
+                                {criteria[i]?.name || `Criterion ${i + 1}`}
+                              </TableCell>
+                              <TableCell align="right">{weight.toFixed(4)}</TableCell>
+                              <TableCell align="right">{aw.toFixed(4)}</TableCell>
+                              <TableCell align="right">{ratio.toFixed(4)}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </>
             ) : (
               <Box sx={{
@@ -1141,10 +1233,12 @@ const Home = () => {
                   No AHP details loaded yet. Click "Refresh AHP Data" to load analysis details.
                 </Typography>
               </Box>
-            )}
-          </CardContent>
-        </StyledCard>
+            )
+            }
+          </CardContent >
+        </StyledCard >
       )}
+    
       {/* Add Criterion Dialog */}
       <Dialog
         open={dialog.addCriterion}
@@ -1269,7 +1363,7 @@ const Home = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </Container >
   );
 };
 
